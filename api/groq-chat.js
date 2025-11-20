@@ -17,26 +17,28 @@ export default async function handler(req, res) {
     }
   }
 
-  // 3️⃣ Messenger Messages (POST)
+  // Messenger Messages (POST)
   if (req.method === "POST") {
     try {
       const body = req.body;
-
-      // Check if the webhook event is for a page
+  
       if (body.object === "page") {
         for (const entry of body.entry) {
           const event = entry.messaging[0];
           const senderId = event.sender.id;
-
-          // Only respond to text messages
+  
           if (event.message && event.message.text) {
             const userMessage = event.message.text;
-
-            // Use Groq LLM
+  
             const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
-            sendTypingIndicator(senderId, true)
-
+  
+            // Mark seen (optional but recommended)
+            await sendMarkSeen(senderId);
+  
+            // Typing ON
+            await sendTypingIndicator(senderId, true);
+  
+            // Call Groq
             const completion = await client.chat.completions.create({
               model: "openai/gpt-oss-20b",
               messages: [
@@ -44,23 +46,24 @@ export default async function handler(req, res) {
                 { role: "user", content: userMessage }
               ],
             });
-
+  
             const reply = completion.choices[0].message.content;
-
-            sendTypingIndicator(senderId, false)
-            
-            // Send message back to Messenger user
+  
+            // Typing OFF
+            await sendTypingIndicator(senderId, false);
+  
+            // Send reply
             await sendMessageToMessenger(senderId, reply);
           }
         }
-
-        return res.status(200).send('OK');
+  
+        return res.status(200).send("OK");
       } else {
-        return res.status(404);
+        return res.status(404).send("Not Found");
       }
     } catch (err) {
       console.error("Webhook error:", err);
-      return res.status(500);
+      return res.status(500).send("Server Error");
     }
   }
 
@@ -85,7 +88,7 @@ async function sendMessageToMessenger(recipientId, text) {
 async function sendTypingIndicator(recipientId, isTyping) {
   const PAGE_ACCESS_TOKEN = process.env.MESSENGER_PAGE_TOKEN;
 
-  await fetch(
+  return fetch(
     `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
     {
       method: "POST",
@@ -93,6 +96,23 @@ async function sendTypingIndicator(recipientId, isTyping) {
       body: JSON.stringify({
         recipient: { id: recipientId },
         sender_action: isTyping ? "typing_on" : "typing_off"
+      })
+    }
+  );
+}
+
+
+async function sendMarkSeen(recipientId) {
+  const PAGE_ACCESS_TOKEN = process.env.MESSENGER_PAGE_TOKEN;
+
+  return fetch(
+    `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recipient: { id: recipientId },
+        sender_action: "mark_seen"
       })
     }
   );
