@@ -15,7 +15,7 @@ export default async function handler(req, res) {
       return res.status(200).send(challenge);
     } else {
       console.log("Webhook verify failed: token mismatch.");
-      return res.sendStatus(403);
+      return res.status(403);
     }
   }
 
@@ -55,15 +55,15 @@ export default async function handler(req, res) {
 
         return res.status(200).send('OK');
       } else {
-        return res.sendStatus(404);
+        return res.status(404);
       }
     } catch (err) {
       console.error("Webhook error:", err);
-      return res.sendStatus(500);
+      return res.status(500);
     }
   }
 
-  return res.sendStatus(405); // Method Not Allowed
+  return res.status(405); // Method Not Allowed
 }
 
 // 📤 Send response to Messenger
