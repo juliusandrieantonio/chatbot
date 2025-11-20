@@ -53,7 +53,7 @@ export default async function handler(req, res) {
           }
         }
 
-        return res.status(200).send("EVENT_RECEIVED");
+        return res.status(200).send('OK');
       } else {
         return res.sendStatus(404);
       }
