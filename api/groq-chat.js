@@ -39,7 +39,7 @@ export default async function handler(req, res) {
             const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
             const completion = await client.chat.completions.create({
-              model: "llama3-8b-8192",
+              model: "openai/gpt-oss-20b",
               messages: [
                 { role: "system", content: "You are a helpful assistant." },
                 { role: "user", content: userMessage }
