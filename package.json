@@ -1,0 +1,14 @@
+{
+  "name": "chatbot-testing",
+  "version": "1.0.0",
+  "description": "dev testing for messenger chatbot",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "julius",
+  "license": "ISC",
+  "dependencies": {
+    "groq-sdk": "^0.36.0"
+  }
+}
