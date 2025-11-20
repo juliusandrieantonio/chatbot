@@ -1,10 +1,8 @@
 import Groq from "groq-sdk";
 
 export default async function handler(req, res) {
-  // 1️⃣ Your Verify Token
   const VERIFY_TOKEN = process.env.MESSENGER_VERIFY_TOKEN;
 
-  // 2️⃣ Facebook Verification (GET)
   if (req.method === "GET") {
     const mode = req.query["hub.mode"];
     const token = req.query["hub.verify_token"];
@@ -28,15 +26,16 @@ export default async function handler(req, res) {
       if (body.object === "page") {
         for (const entry of body.entry) {
           const event = entry.messaging[0];
-
           const senderId = event.sender.id;
 
           // Only respond to text messages
           if (event.message && event.message.text) {
             const userMessage = event.message.text;
 
-            // 🔥 Use Groq LLM
+            // Use Groq LLM
             const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+            sendTypingIndicator(senderId, true)
 
             const completion = await client.chat.completions.create({
               model: "openai/gpt-oss-20b",
@@ -48,7 +47,9 @@ export default async function handler(req, res) {
 
             const reply = completion.choices[0].message.content;
 
-            // 📤 Send message back to Messenger user
+            sendTypingIndicator(senderId, false)
+            
+            // Send message back to Messenger user
             await sendMessageToMessenger(senderId, reply);
           }
         }
@@ -66,7 +67,6 @@ export default async function handler(req, res) {
   return res.status(405); // Method Not Allowed
 }
 
-// 📤 Send response to Messenger
 async function sendMessageToMessenger(recipientId, text) {
   const PAGE_ACCESS_TOKEN = process.env.MESSENGER_PAGE_TOKEN;
 
@@ -80,4 +80,20 @@ async function sendMessageToMessenger(recipientId, text) {
       message: { text }
     }),
   });
+}
+
+async function sendTypingIndicator(recipientId, isTyping) {
+  const PAGE_ACCESS_TOKEN = process.env.MESSENGER_PAGE_TOKEN;
+
+  await fetch(
+    `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recipient: { id: recipientId },
+        sender_action: isTyping ? "typing_on" : "typing_off"
+      })
+    }
+  );
 }
